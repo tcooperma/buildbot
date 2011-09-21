@@ -79,17 +79,12 @@ class GerritStatusPush(StatusReceiverMultiService):
 
     def buildFinished(self, builderName, build, result):
         """Do the SSH gerrit verify command to the server."""
-        repo, git = False, False
 
         # Gerrit + Repo
-        try:
-            downloads = build.getProperty("repo_downloads")
-            downloaded = build.getProperty("repo_downloaded").split(" ")
-            repo = True
-        except KeyError:
-            pass
-
-        if repo:
+        downloads = build.getProperty("repo_downloads")
+        downloaded = build.getProperty("repo_downloaded")
+        if downloads is not None and downloaded is not None: 
+            downloaded = downloaded.split(" ")
             if downloads and 2 * len(downloads) == len(downloaded):
                 message, verified, reviewed = self.reviewCB(builderName, build, result, self.status, self.reviewArg)
                 if message == None:
@@ -108,15 +103,10 @@ class GerritStatusPush(StatusReceiverMultiService):
             return
 
         # Gerrit + Git
-        try:
-            build.getProperty("gerrit_branch") # used only to verify Gerrit source
+        if build.getProperty("gerrit_branch") is not None: # used only to verify Gerrit source
             project = build.getProperty("project")
             revision = build.getProperty("got_revision")
-            git = True
-        except KeyError:
-            pass
-
-        if git:
+            if project is not None and revision is not None:
             message, verified, reviewed = self.reviewCB(builderName, build, result, self.status, self.reviewArg)
             if message == None:
                 return

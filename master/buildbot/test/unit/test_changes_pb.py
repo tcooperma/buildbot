@@ -85,9 +85,10 @@ class TestChangePerspective(unittest.TestCase):
     def setUp(self):
         self.added_changes = []
         self.master = mock.Mock()
+
         def addChange(**chdict):
             self.added_changes.append(chdict)
-            return defer.succeed(None)
+            return defer.succeed(mock.Mock())
         self.master.addChange = addChange
 
     def test_addChange_noprefix(self):
@@ -116,7 +117,30 @@ class TestChangePerspective(unittest.TestCase):
                 )
         def check(_):
             self.assertEqual(self.added_changes,
-                    [ dict(project="", revlink="", repository="", files=[]) ])
+                    [ dict(project="", revlink="", repository="",
+                           files=[]) ])
+        d.addCallback(check)
+        return d
+
+    def test_addChange_when_None(self):
+        cp = pb.ChangePerspective(self.master, None)
+        d = cp.perspective_addChange(
+                dict(when=None)
+                )
+        def check(_):
+            self.assertEqual(self.added_changes,
+                    [ dict(when_timestamp=None, files=[]) ])
+        d.addCallback(check)
+        return d
+
+    def test_addChange_files_tuple(self):
+        cp = pb.ChangePerspective(self.master, None)
+        d = cp.perspective_addChange(
+                dict(files=('a', 'b'))
+                )
+        def check(_):
+            self.assertEqual(self.added_changes,
+                    [ dict(files=['a', 'b']) ])
         d.addCallback(check)
         return d
 
@@ -194,3 +218,12 @@ class TestChangePerspective(unittest.TestCase):
         d.addCallback(check)
         return d
 
+    def test_createUserObject_git_src(self):
+        cp = pb.ChangePerspective(self.master, None)
+        d = cp.perspective_addChange(dict(who="c <h@c>", src='git'))
+        def check_change(_):
+            self.assertEqual(self.added_changes, [ dict(author="c <h@c>",
+                                                        files=[],
+                                                        src='git') ])
+        d.addCallback(check_change)
+        return d
